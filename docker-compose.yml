@@ -1,9 +1,11 @@
 version: '3.8'
+
 services:
-  web:
+  ar-app:
     build: .
     ports:
       - "80:80"
+    volumes:
+      - ./assets:/usr/share/nginx/html/assets
+      - ./index.html:/usr/share/nginx/html/index.html
     restart: unless-stopped
-
-

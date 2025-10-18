@@ -1,14 +1,12 @@
-# Gunakan image nginx untuk serve static files
 FROM nginx:alpine
 
+# Copy assets
+COPY assets /usr/share/nginx/html/assets
 
-# Hapus default config dan copy project ke html folder
-RUN rm -rf /usr/share/nginx/html/*
-COPY . /usr/share/nginx/html
-
+# Copy index.html
+COPY index.html /usr/share/nginx/html/
 
 # Expose port
 EXPOSE 80
-
 
 CMD ["nginx", "-g", "daemon off;"]

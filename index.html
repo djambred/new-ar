@@ -1,155 +1,376 @@
-<!doctype html>
-
-<html lang="id">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>ThreeJS AR (Markerless) - siatang animasi</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siatang AR - Markerless</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/GLTFLoader.js"></script>
     <style>
-      html, body { height: 100%; margin: 0; overflow: hidden; font-family: system-ui, Arial; }
-      #container { width: 100%; height: 100%; position: relative; }
-      #ui { position: absolute; left: 16px; top: 16px; z-index: 10; color: white; }
-      button { font-size: 16px; padding: 8px 12px; }
-      #msg { position: absolute; left: 16px; bottom: 16px; z-index: 10; color: white; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px; }
-      canvas { display: block; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        #container { 
+            width: 100vw; 
+            height: 100vh; 
+            position: relative;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            font-size: 14px;
+            max-width: 300px;
+        }
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+        .btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .btn:hover { transform: scale(1.1); }
+        .btn:active { transform: scale(0.95); }
+        #playBtn { background: #4CAF50; color: white; }
+        #playBtn.playing { background: #f44336; }
+        #muteBtn { background: #2196F3; color: white; }
+        #resetBtn { background: #FF9800; color: white; }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            z-index: 200;
+        }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+            50% { transform: translateY(-30px) scale(1.5); opacity: 1; }
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <div id="container"></div>
-    <div id="ui"><button id="enter-ar">Masuk AR</button></div>
-    <div id="msg">Ketuk layar untuk meletakkan model setelah AR aktif.</div>
+    
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Loading 3D Model...</p>
+    </div>
 
-<script type="module">
-  import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
-  import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
-  import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/webxr/ARButton.js';
+    <div id="info">
+        <h3 style="margin-bottom: 10px;">SI ATANG</h3>
+        <p style="font-size: 12px; line-height: 1.5;">
+            • Tap to interact<br>
+            • Drag to rotate<br>
+            • Scroll to zoom<br>
+            • Press play for audio animations
+        </p>
+    </div>
 
-  let camera, scene, renderer;
-  let reticle, controller;
-  let model;
-  let placed = false;
-  let wavePhase = 0;
-  const clock = new THREE.Clock();
+    <div id="controls">
+        <button id="playBtn" class="btn" title="Play/Pause Audio">▶</button>
+        <button id="muteBtn" class="btn" title="Mute/Unmute">🔊</button>
+        <button id="resetBtn" class="btn" title="Reset">↻</button>
+    </div>
 
-  init();
+    <audio id="audio" src="assets/sounds/welcome.mp3"></audio>
 
-  function init() {
-    const container = document.getElementById('container');
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+    <script>
+        let scene, camera, renderer, model, mixer, clock;
+        let isPlaying = false;
+        let isMuted = false;
+        let rotationSpeed = 0.01;
+        let floatOffset = 0;
+        let audioContext, analyser, dataArray;
+        
+        const audio = document.getElementById('audio');
+        const playBtn = document.getElementById('playBtn');
+        const muteBtn = document.getElementById('muteBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const loading = document.getElementById('loading');
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.xr.enabled = true;
-    container.appendChild(renderer.domElement);
+        init();
+        animate();
 
-    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-    scene.add(light);
-
-    reticle = new THREE.Mesh(
-      new THREE.RingGeometry(0.08, 0.12, 32).rotateX(-Math.PI / 2),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-    );
-    reticle.matrixAutoUpdate = false;
-    reticle.visible = false;
-    scene.add(reticle);
-
-    controller = renderer.xr.getController(0);
-    controller.addEventListener('select', onSelect);
-    scene.add(controller);
-
-    const loader = new GLTFLoader();
-    loader.load('assets/models/siatang-new.glb', gltf => {
-      model = gltf.scene;
-      model.visible = false;
-      model.scale.set(0.5, 0.5, 0.5);
-      scene.add(model);
-
-      // Audio
-      const listener = new THREE.AudioListener();
-      camera.add(listener);
-      const audioLoader = new THREE.AudioLoader();
-      const posAudio = new THREE.PositionalAudio(listener);
-      audioLoader.load('assets/sounds/welcome.mp3', buffer => {
-        posAudio.setBuffer(buffer);
-        posAudio.setRefDistance(1);
-        posAudio.setLoop(false);
-      });
-      model.add(posAudio);
-    }, undefined, e => console.error('GLB load error', e));
-
-    const button = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
-    document.getElementById('enter-ar').addEventListener('click', async () => {
-      try {
-        const sessionInit = { requiredFeatures: ['hit-test'] };
-        const session = await navigator.xr.requestSession('immersive-ar', sessionInit);
-        renderer.xr.setSession(session);
-
-        const refSpace = await session.requestReferenceSpace('viewer');
-        const hitTestSource = await session.requestHitTestSource({ space: refSpace });
-        const localRefSpace = await session.requestReferenceSpace('local');
-
-        renderer.setAnimationLoop(function (timestamp, frame) {
-          if (frame) {
-            const hitTestResults = frame.getHitTestResults(hitTestSource);
-            if (hitTestResults.length > 0 && !placed) {
-              const hit = hitTestResults[0];
-              const pose = hit.getPose(localRefSpace);
-              reticle.visible = true;
-              reticle.matrix.fromArray(pose.transform.matrix);
-            } else if (!placed) {
-              reticle.visible = false;
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+            camera.position.y = 2;
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+            
+            const pointLight1 = new THREE.PointLight(0xff00ff, 1, 100);
+            pointLight1.position.set(-5, 5, 5);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0x00ffff, 1, 100);
+            pointLight2.position.set(5, 5, -5);
+            scene.add(pointLight2);
+            
+            // Load GLB model
+            const loader = new THREE.GLTFLoader();
+            loader.load(
+                'assets/models/siatang-new.glb',
+                (gltf) => {
+                    model = gltf.scene;
+                    model.scale.set(2, 2, 2);
+                    model.position.set(0, 0, 0);
+                    
+                    // Enable shadows
+                    model.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
+                    
+                    scene.add(model);
+                    loading.style.display = 'none';
+                    createParticles();
+                },
+                (xhr) => {
+                    const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
+                    loading.querySelector('p').textContent = `Loading ${percent}%`;
+                },
+                (error) => {
+                    console.error('Error loading model:', error);
+                    loading.querySelector('p').textContent = 'Error loading model';
+                }
+            );
+            
+            // Clock for animations
+            clock = new THREE.Clock();
+            
+            // Mouse controls
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (isDragging && model) {
+                    const deltaMove = {
+                        x: e.offsetX - previousMousePosition.x,
+                        y: e.offsetY - previousMousePosition.y
+                    };
+                    
+                    model.rotation.y += deltaMove.x * 0.01;
+                    model.rotation.x += deltaMove.y * 0.01;
+                }
+                
+                previousMousePosition = {
+                    x: e.offsetX,
+                    y: e.offsetY
+                };
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            // Zoom with mouse wheel
+            renderer.domElement.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                camera.position.z += e.deltaY * 0.01;
+                camera.position.z = Math.max(2, Math.min(10, camera.position.z));
+            });
+            
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Button events
+            playBtn.addEventListener('click', togglePlay);
+            muteBtn.addEventListener('click', toggleMute);
+            resetBtn.addEventListener('click', reset);
+            
+            // Audio setup
+            setupAudioAnalyser();
+        }
+        
+        function setupAudioAnalyser() {
+        // Tunggu user interaction dulu sebelum init audio context
+        audio.addEventListener('play', () => {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaElementSource(audio);
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
             }
-            animateModel();
-            render();
-          }
+            
+            // Resume audio context jika suspended
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
         });
-
-        controller.addEventListener('select', () => {
-          if (!reticle.visible || !model) return;
-          model.position.setFromMatrixPosition(reticle.matrix);
-          model.rotation.y = camera.rotation.y;
-          model.visible = true;
-          placed = true;
-
-          const posAudio = model.children.find(c => c.type === 'Audio');
-          if (posAudio && posAudio.isPlaying === false) posAudio.play();
-        });
-
-      } catch (err) {
-        console.error('Gagal memulai AR session', err);
-        alert('AR tidak tersedia: ' + err.message);
-      }
-    });
-
-    window.addEventListener('resize', onWindowResize);
-  }
-
-  function onSelect() {}
-
-  function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-
-  function animateModel() {
-    const delta = clock.getDelta();
-    if (model && placed) {
-      // rotasi lembut
-      model.rotation.y += delta * 0.6;
-
-      // efek lambaian seperti naik-turun halus
-      wavePhase += delta * 2;
-      model.position.y += Math.sin(wavePhase) * 0.002;
     }
-  }
 
-  function render() {
-    renderer.render(scene, camera);
-  }
-</script>
+    function togglePlay() {
+        if (isPlaying) {
+            audio.pause();
+            playBtn.textContent = '▶';
+            playBtn.classList.remove('playing');
+        } else {
+            // Add promise handling
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        playBtn.textContent = '⏸';
+                        playBtn.classList.add('playing');
+                    })
+                    .catch(error => {
+                        console.error('Playback error:', error);
+                        alert('Audio playback gagal. Pastikan file welcome.mp3 ada di folder assets/sounds/');
+                        return;
+                    });
+            }
+        }
+        isPlaying = !isPlaying;
+    }
 
-  </body>
+        function toggleMute() {
+            isMuted = !isMuted;
+            audio.muted = isMuted;
+            muteBtn.textContent = isMuted ? '🔇' : '🔊';
+        }
+
+        function reset() {
+            audio.currentTime = 0;
+            audio.pause();
+            isPlaying = false;
+            playBtn.textContent = '▶';
+            playBtn.classList.remove('playing');
+            if (model) {
+                model.rotation.set(0, 0, 0);
+                model.scale.set(2, 2, 2);
+            }
+            camera.position.set(0, 2, 5);
+        }
+
+        function createParticles() {
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 3 + 's';
+                document.getElementById('container').appendChild(particle);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            floatOffset += delta;
+            
+            if (model) {
+                // Auto rotation
+                model.rotation.y += rotationSpeed;
+                
+                // Floating animation
+                model.position.y = Math.sin(floatOffset * 2) * 0.3;
+                
+                // Audio-reactive animations
+                if (isPlaying && analyser) {
+                    analyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                    const scale = 2 + (average / 255) * 0.5;
+                    model.scale.set(scale, scale, scale);
+                    
+                    // Pulse rotation speed with audio
+                    rotationSpeed = 0.01 + (average / 255) * 0.02;
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        audio.addEventListener('ended', () => {
+            isPlaying = false;
+            playBtn.textContent = '▶';
+            playBtn.classList.remove('playing');
+        });
+    </script>
+</body>
 </html>
