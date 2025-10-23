@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Siatang AR</title>
+    <title>Si Atang AR - Festival Cisadane 2025</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/GLTFLoader.js"></script>
     <style>
@@ -13,11 +13,75 @@
             overflow: hidden;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+        
         #container { 
             width: 100vw; 
             height: 100vh; 
             position: relative;
         }
+        
+        #videoElement {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        
+        #canvas3d {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+        
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            color: white;
+            text-align: center;
+        }
+        
+        .start-screen h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .start-screen p {
+            font-size: 16px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .start-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 20px 50px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+        }
+        
+        .start-btn:hover { transform: scale(1.05); }
+        
         #info {
             position: absolute;
             top: 20px;
@@ -31,6 +95,36 @@
             font-size: 14px;
             max-width: 300px;
         }
+        
+        .speech-bubble {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 20px;
+            max-width: 300px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 100;
+        }
+        
+        .speech-bubble.show { opacity: 1; }
+        
+        .speech-bubble h3 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #FFD700;
+        }
+        
+        .speech-bubble p {
+            margin: 5px 0;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
         #controls {
             position: absolute;
             bottom: 30px;
@@ -40,6 +134,7 @@
             gap: 15px;
             z-index: 100;
         }
+        
         .btn {
             width: 60px;
             height: 60px;
@@ -52,13 +147,26 @@
             font-size: 24px;
             transition: all 0.3s;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            color: white;
         }
+        
         .btn:hover { transform: scale(1.1); }
         .btn:active { transform: scale(0.95); }
-        #playBtn { background: #4CAF50; color: white; }
+        
+        #playBtn { background: #4CAF50; }
         #playBtn.playing { background: #f44336; }
-        #muteBtn { background: #2196F3; color: white; }
-        #resetBtn { background: #FF9800; color: white; }
+        
+        .ar-button {
+            background: linear-gradient(135deg, #00B4DB 0%, #0083B0 100%);
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .ar-button.denah { background: linear-gradient(135deg, #F093FB 0%, #F5576C 100%); }
+        .ar-button.jadwal { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        
         #loading {
             position: absolute;
             top: 50%;
@@ -68,7 +176,11 @@
             color: white;
             font-size: 18px;
             z-index: 200;
+            background: rgba(0,0,0,0.8);
+            padding: 30px;
+            border-radius: 20px;
         }
+        
         .spinner {
             border: 4px solid rgba(255,255,255,0.3);
             border-top: 4px solid white;
@@ -78,23 +190,12 @@
             animation: spin 1s linear infinite;
             margin: 0 auto 15px;
         }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .particle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: white;
-            border-radius: 50%;
-            pointer-events: none;
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
-            50% { transform: translateY(-30px) scale(1.5); opacity: 1; }
-        }
+        
         #dancingIndicator {
             position: absolute;
             bottom: 120px;
@@ -109,11 +210,14 @@
             animation: dance-pulse 0.5s ease-in-out infinite;
             z-index: 100;
         }
+        
         #dancingIndicator.show { display: block; }
+        
         @keyframes dance-pulse {
             0%, 100% { transform: translateX(-50%) scale(1) rotate(-3deg); }
             50% { transform: translateX(-50%) scale(1.1) rotate(3deg); }
         }
+        
         .disco-lights {
             position: absolute;
             top: 0;
@@ -125,7 +229,9 @@
             transition: opacity 0.3s;
             z-index: 50;
         }
+        
         .disco-lights.show { opacity: 0.3; }
+        
         .disco-light {
             position: absolute;
             width: 200px;
@@ -134,136 +240,284 @@
             filter: blur(80px);
             animation: disco-move 3s ease-in-out infinite;
         }
+        
         .disco-light:nth-child(1) {
             background: #ff0080;
             top: 10%;
             left: 10%;
             animation-delay: 0s;
         }
+        
         .disco-light:nth-child(2) {
             background: #00ffff;
             top: 60%;
             right: 10%;
             animation-delay: 1s;
         }
+        
         .disco-light:nth-child(3) {
             background: #ffff00;
             bottom: 10%;
             left: 50%;
             animation-delay: 2s;
         }
+        
         @keyframes disco-move {
             0%, 100% { transform: translate(0, 0) scale(1); }
             50% { transform: translate(50px, 30px) scale(1.3); }
         }
-        #zoomIndicator {
+        
+        .info-panel {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 48px;
-            opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-            z-index: 100;
-            text-shadow: 0 0 20px rgba(255,255,255,0.8);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 1000;
         }
-        #zoomIndicator.zoom-in { opacity: 1; }
-        #zoomIndicator.zoom-out { opacity: 1; }
+        
+        .info-panel.show { display: block; }
+        
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .info-panel h3 {
+            color: #667eea;
+            margin-top: 0;
+            font-size: 24px;
+        }
+        
+        .jadwal-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .jadwal-item strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .denah-map {
+            width: 100%;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+            line-height: 2;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-    <div id="container"></div>
-    
-    <div class="disco-lights">
-        <div class="disco-light"></div>
-        <div class="disco-light"></div>
-        <div class="disco-light"></div>
-    </div>
-    
-    <div id="loading">
-        <div class="spinner"></div>
-        <p>Loading 3D Model...</p>
+    <!-- Start Screen -->
+    <div id="startScreen" class="start-screen">
+        <h1>🎉 Si Atang AR Experience</h1>
+        <p>Festival Cisadane & DIGI FEST Vol 3<br>Kota Tangerang 2025</p>
+        <button class="start-btn" onclick="startAR()">Mulai AR Experience</button>
     </div>
 
-    <div id="info">
-        <h3 style="margin-bottom: 10px;">si ATANG</h3>
-        <p style="font-size: 12px; line-height: 1.5;">
-            • Drag to rotate<br>
-            • Scroll to zoom<br>
-            • Press play for moves!<br>
-            <!-- • 🕺 Joget + Zoom sesuai beat -->
-        </p>
-    </div>
+    <div id="container">
+        <video id="videoElement" autoplay playsinline></video>
+        <canvas id="canvas3d"></canvas>
+        
+        <div class="disco-lights">
+            <div class="disco-light"></div>
+            <div class="disco-light"></div>
+            <div class="disco-light"></div>
+        </div>
+        
+        <div id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Loading Si Atang...</p>
+        </div>
 
-    <div id="controls">
-        <button id="playBtn" class="btn" title="Play/Pause Audio">▶</button>
-        <button id="muteBtn" class="btn" title="Mute/Unmute">🔊</button>
-        <button id="resetBtn" class="btn" title="Reset">↻</button>
-    </div>
+        <div id="info" style="display: none;">
+            <h3 style="margin-bottom: 10px;">🎭 Si ATANG</h3>
+            <p style="font-size: 12px; line-height: 1.5;">
+                • Touch & drag to rotate<br>
+                • Pinch to zoom<br>
+                • Press ▶ for dance!<br>
+                • Mascot Kota Tangerang
+            </p>
+        </div>
 
-    <div id="dancingIndicator">🕺 Hello...</div>
-    <div id="zoomIndicator">🔍</div>
+        <div id="speechBubble" class="speech-bubble">
+            <h3>🎊 Hallo Semuanya!</h3>
+            <p>Selamat Datang Warga Masyarakat Kota Tangerang</p>
+            <p>Di Tahun 2025 Kota Tangerang Menyelenggarakan</p>
+            <p><strong>Festival Cisadane</strong> dan <strong>DIGI FEST Vol 3</strong></p>
+        </div>
+
+        <div id="controls" style="display: none;">
+            <button id="playBtn" class="btn" title="Play/Pause">▶</button>
+            <button class="btn ar-button denah" onclick="showDenah()">📍 Denah</button>
+            <button class="btn ar-button jadwal" onclick="showJadwal()">📅 Jadwal</button>
+        </div>
+
+        <div id="dancingIndicator">🕺 Atang Joget!</div>
+
+        <!-- Denah Panel -->
+        <div id="denahPanel" class="info-panel">
+            <button class="close-btn" onclick="closePanel('denahPanel')">×</button>
+            <h3>📍 Denah Lokasi Festival</h3>
+            <div class="denah-map">
+                <p><strong>FESTIVAL CISADANE & DIGI FEST 2025</strong></p>
+                <p>📍 Kawasan Cisadane, Kota Tangerang</p>
+                <p>🎪 Area Utama: Taman Cisadane</p>
+                <p>🎭 Area Panggung: Amphitheater</p>
+                <p>🍔 Food Court: Area Kuliner</p>
+                <p>💻 Tech Zone: Digital Innovation Hub</p>
+                <p>🎨 Art Gallery: Creative Space</p>
+            </div>
+        </div>
+
+        <!-- Jadwal Panel -->
+        <div id="jadwalPanel" class="info-panel">
+            <button class="close-btn" onclick="closePanel('jadwalPanel')">×</button>
+            <h3>📅 Jadwal Kegiatan Festival 2025</h3>
+            
+            <div class="jadwal-item">
+                <strong>🎪 Festival Cisadane</strong>
+                <p>📅 1-7 Juni 2025 | ⏰ 09:00 - 22:00 WIB<br>📍 Taman Cisadane</p>
+            </div>
+
+            <div class="jadwal-item">
+                <strong>💻 DIGI FEST Vol 3</strong>
+                <p>📅 15-21 Juni 2025 | ⏰ 10:00 - 21:00 WIB<br>📍 Digital Innovation Hub</p>
+            </div>
+
+            <div class="jadwal-item">
+                <strong>🎵 Opening Concert</strong>
+                <p>📅 1 Juni 2025 | ⏰ 18:00 - 22:00 WIB<br>🎤 Artis Lokal & Nasional</p>
+            </div>
+
+            <div class="jadwal-item">
+                <strong>🎨 Pameran Seni Digital</strong>
+                <p>📅 15-21 Juni 2025 | ⏰ 10:00 - 20:00 WIB<br>🖼️ Karya Seniman Lokal</p>
+            </div>
+
+            <div class="jadwal-item">
+                <strong>🏆 Gaming Tournament</strong>
+                <p>📅 17-19 Juni 2025 | ⏰ 10:00 - 18:00 WIB<br>🎮 E-Sports Competition</p>
+            </div>
+
+            <div class="jadwal-item">
+                <strong>🎭 Cultural Performance</strong>
+                <p>📅 3-5 Juni 2025 | ⏰ 16:00 - 20:00 WIB<br>💃 Tari & Musik Tradisional</p>
+            </div>
+        </div>
+    </div>
 
     <audio id="audio" src="assets/sounds/welcome.mp3"></audio>
 
     <script>
         let scene, camera, renderer, model, clock;
         let isPlaying = false;
-        let isMuted = false;
         let audioContext, analyser, dataArray;
         let dancePhase = 0;
         let beatDetected = false;
         let lastBeatTime = 0;
-        let baseCameraZ = 5;
-        let targetCameraZ = 5;
-        let zoomPhase = 0;
+        let arActive = false;
         
+        const video = document.getElementById('videoElement');
+        const canvas = document.getElementById('canvas3d');
         const audio = document.getElementById('audio');
         const playBtn = document.getElementById('playBtn');
-        const muteBtn = document.getElementById('muteBtn');
-        const resetBtn = document.getElementById('resetBtn');
         const loading = document.getElementById('loading');
         const dancingIndicator = document.getElementById('dancingIndicator');
         const discoLights = document.querySelector('.disco-lights');
-        const zoomIndicator = document.getElementById('zoomIndicator');
+        const speechBubble = document.getElementById('speechBubble');
 
-        init();
-        animate();
+        async function startAR() {
+            document.getElementById('startScreen').style.display = 'none';
+            loading.style.display = 'block';
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                video.srcObject = stream;
+                
+                await video.play();
+                
+                init();
+                animate();
+                
+                document.getElementById('info').style.display = 'block';
+                document.getElementById('controls').style.display = 'flex';
+                
+                setTimeout(() => {
+                    speechBubble.classList.add('show');
+                }, 1500);
+                
+                arActive = true;
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Tidak dapat mengakses kamera. Pastikan izin kamera diaktifkan!');
+                loading.style.display = 'none';
+            }
+        }
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a2e);
             
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = baseCameraZ;
-            camera.position.y = 2;
+            camera = new THREE.PerspectiveCamera(
+                75, 
+                window.innerWidth / window.innerHeight, 
+                0.1, 
+                1000
+            );
+            camera.position.set(0, 1, 3);
             
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer = new THREE.WebGLRenderer({ 
+                canvas: canvas,
+                alpha: true,
+                antialias: true 
+            });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.shadowMap.enabled = true;
-            document.getElementById('container').appendChild(renderer.domElement);
             
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
             
             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
             directionalLight.position.set(5, 10, 5);
-            directionalLight.castShadow = true;
             scene.add(directionalLight);
             
-            // Disco lights
-            const spotLight1 = new THREE.SpotLight(0xff0080, 2);
-            spotLight1.position.set(-10, 10, 0);
+            const spotLight1 = new THREE.SpotLight(0xff0080, 1.5);
+            spotLight1.position.set(-5, 5, 0);
             scene.add(spotLight1);
             
-            const spotLight2 = new THREE.SpotLight(0x00ffff, 2);
-            spotLight2.position.set(10, 10, 0);
+            const spotLight2 = new THREE.SpotLight(0x00ffff, 1.5);
+            spotLight2.position.set(5, 5, 0);
             scene.add(spotLight2);
             
-            const spotLight3 = new THREE.SpotLight(0xffff00, 2);
-            spotLight3.position.set(0, 10, 10);
+            const spotLight3 = new THREE.SpotLight(0xffff00, 1.5);
+            spotLight3.position.set(0, 5, 5);
             scene.add(spotLight3);
             
             const loader = new THREE.GLTFLoader();
@@ -271,19 +525,10 @@
                 'assets/models/siatang-new.glb',
                 (gltf) => {
                     model = gltf.scene;
-                    model.scale.set(2, 2, 2);
-                    model.position.set(0, 0, 0);
-                    
-                    model.traverse((child) => {
-                        if (child.isMesh) {
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-                        }
-                    });
-                    
+                    model.scale.set(1.5, 1.5, 1.5);
+                    model.position.set(0, -1, 0);
                     scene.add(model);
                     loading.style.display = 'none';
-                    createParticles();
                 },
                 (xhr) => {
                     const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
@@ -291,54 +536,49 @@
                 },
                 (error) => {
                     console.error('Error loading model:', error);
-                    loading.querySelector('p').textContent = 'Error loading model';
+                    loading.innerHTML = '<p>⚠️ Model tidak ditemukan!<br>Menggunakan fallback...</p>';
+                    createFallbackModel();
                 }
             );
             
             clock = new THREE.Clock();
             
             let isDragging = false;
-            let previousMousePosition = { x: 0, y: 0 };
+            let previousTouch = { x: 0, y: 0 };
             
-            renderer.domElement.addEventListener('mousedown', (e) => {
+            canvas.addEventListener('touchstart', (e) => {
                 isDragging = true;
+                previousTouch = {
+                    x: e.touches[0].clientX,
+                    y: e.touches[0].clientY
+                };
             });
             
-            renderer.domElement.addEventListener('mousemove', (e) => {
+            canvas.addEventListener('touchmove', (e) => {
                 if (isDragging && model) {
+                    e.preventDefault();
                     const deltaMove = {
-                        x: e.offsetX - previousMousePosition.x,
-                        y: e.offsetY - previousMousePosition.y
+                        x: e.touches[0].clientX - previousTouch.x,
+                        y: e.touches[0].clientY - previousTouch.y
                     };
                     
                     model.rotation.y += deltaMove.x * 0.01;
                     model.rotation.x += deltaMove.y * 0.01;
+                    
+                    previousTouch = {
+                        x: e.touches[0].clientX,
+                        y: e.touches[0].clientY
+                    };
                 }
-                
-                previousMousePosition = {
-                    x: e.offsetX,
-                    y: e.offsetY
-                };
             });
             
-            renderer.domElement.addEventListener('mouseup', () => {
+            canvas.addEventListener('touchend', () => {
                 isDragging = false;
-            });
-            
-            renderer.domElement.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                if (!isPlaying) {
-                    baseCameraZ += e.deltaY * 0.01;
-                    baseCameraZ = Math.max(2, Math.min(10, baseCameraZ));
-                    targetCameraZ = baseCameraZ;
-                }
             });
             
             window.addEventListener('resize', onWindowResize);
             
             playBtn.addEventListener('click', togglePlay);
-            muteBtn.addEventListener('click', toggleMute);
-            resetBtn.addEventListener('click', reset);
             
             audio.addEventListener('play', () => {
                 if (!audioContext) {
@@ -358,6 +598,37 @@
             });
         }
 
+        function createFallbackModel() {
+            const group = new THREE.Group();
+            
+            const body = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.3, 0.6, 32),
+                new THREE.MeshPhongMaterial({ color: 0x00CED1 })
+            );
+            body.position.y = 0;
+            group.add(body);
+            
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.35, 32, 32),
+                new THREE.MeshPhongMaterial({ color: 0xFFE4B5 })
+            );
+            head.position.y = 0.65;
+            group.add(head);
+            
+            const hat = new THREE.Mesh(
+                new THREE.ConeGeometry(0.4, 0.4, 32),
+                new THREE.MeshPhongMaterial({ color: 0x4169E1 })
+            );
+            hat.position.y = 1;
+            group.add(hat);
+            
+            model = group;
+            model.scale.set(1.5, 1.5, 1.5);
+            model.position.set(0, -1, 0);
+            scene.add(model);
+            loading.style.display = 'none';
+        }
+
         function togglePlay() {
             if (isPlaying) {
                 audio.pause();
@@ -366,60 +637,16 @@
                 dancingIndicator.classList.remove('show');
                 discoLights.classList.remove('show');
             } else {
-                const playPromise = audio.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise
-                        .then(() => {
-                            playBtn.textContent = '⏸';
-                            playBtn.classList.add('playing');
-                            dancingIndicator.classList.add('show');
-                            discoLights.classList.add('show');
-                        })
-                        .catch(error => {
-                            console.error('Playback error:', error);
-                            alert('Audio playback gagal. Pastikan file welcome.mp3 ada!');
-                            isPlaying = false;
-                            return;
-                        });
-                }
+                audio.play().then(() => {
+                    playBtn.textContent = '⏸';
+                    playBtn.classList.add('playing');
+                    dancingIndicator.classList.add('show');
+                    discoLights.classList.add('show');
+                }).catch(error => {
+                    console.error('Audio error:', error);
+                });
             }
             isPlaying = !isPlaying;
-        }
-
-        function toggleMute() {
-            isMuted = !isMuted;
-            audio.muted = isMuted;
-            muteBtn.textContent = isMuted ? '🔇' : '🔊';
-        }
-
-        function reset() {
-            audio.currentTime = 0;
-            audio.pause();
-            isPlaying = false;
-            playBtn.textContent = '▶';
-            playBtn.classList.remove('playing');
-            dancingIndicator.classList.remove('show');
-            discoLights.classList.remove('show');
-            if (model) {
-                model.rotation.set(0, 0, 0);
-                model.scale.set(2, 2, 2);
-                model.position.set(0, 0, 0);
-            }
-            baseCameraZ = 5;
-            targetCameraZ = 5;
-            camera.position.set(0, 2, baseCameraZ);
-        }
-
-        function createParticles() {
-            for (let i = 0; i < 40; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = Math.random() * 100 + '%';
-                particle.style.animationDelay = Math.random() * 3 + 's';
-                document.getElementById('container').appendChild(particle);
-            }
         }
 
         function detectBeat(dataArray) {
@@ -434,87 +661,30 @@
             }
         }
 
-        function animateZoom(time, amplitude) {
-            const normalizedAmp = amplitude / 255;
-            zoomPhase += 0.05;
-            
-            // Smooth zoom in/out pattern
-            const zoomPattern = Math.sin(time * 1.5) * 2;
-            
-            // Beat-based zoom
-            let beatZoom = 0;
-            if (beatDetected) {
-                beatZoom = -1.5; // Zoom IN on beat
-                zoomIndicator.textContent = '';
-                zoomIndicator.classList.add('zoom-in');
-                setTimeout(() => {
-                    zoomIndicator.classList.remove('zoom-in');
-                }, 200);
-            }
-            
-            // Amplitude-based zoom
-            const ampZoom = normalizedAmp * 1.5;
-            
-            // Periodic zoom waves
-            const periodicZoom = Math.sin(zoomPhase) * 1.2 * normalizedAmp;
-            
-            // Combine all zoom effects
-            targetCameraZ = baseCameraZ + zoomPattern + beatZoom + periodicZoom;
-            targetCameraZ = Math.max(2, Math.min(8, targetCameraZ));
-            
-            // Smooth lerp to target
-            camera.position.z += (targetCameraZ - camera.position.z) * 0.1;
-            
-            // Show zoom out indicator periodically
-            if (Math.sin(zoomPhase) > 0.9 && normalizedAmp > 0.5) {
-                zoomIndicator.textContent = '';
-                zoomIndicator.classList.add('zoom-out');
-                setTimeout(() => {
-                    zoomIndicator.classList.remove('zoom-out');
-                }, 200);
-            }
-        }
-
         function danceAnimation(time, amplitude) {
             if (!model) return;
             
             const normalizedAmp = amplitude / 255;
             dancePhase += 0.1;
             
-            // Dance Move 1: Side to side sway
             const swayX = Math.sin(time * 3) * 0.3 * normalizedAmp;
             const swayZ = Math.cos(time * 2) * 0.2 * normalizedAmp;
+            const bounce = Math.abs(Math.sin(time * 4)) * 0.3 * normalizedAmp;
+            const twist = Math.sin(time * 2.5) * 0.3 * normalizedAmp;
             
-            // Dance Move 2: Bounce up and down
-            const bounce = Math.abs(Math.sin(time * 4)) * 0.5 * normalizedAmp;
-            
-            // Dance Move 3: Twist/rotate body
-            const twist = Math.sin(time * 2.5) * 0.4 * normalizedAmp;
-            
-            // Dance Move 4: Head bob
-            const headBob = Math.sin(time * 5) * 0.2 * normalizedAmp;
-            
-            // Apply dance moves
             model.position.x = swayX;
             model.position.z = swayZ;
-            model.position.y = bounce;
-            
+            model.position.y = -1 + bounce;
             model.rotation.z = twist;
-            model.rotation.x = headBob * 0.3;
             
-            // Spin on beat drop
             if (beatDetected) {
                 model.rotation.y += 0.3;
-                model.scale.set(2.3, 2.3, 2.3);
+                const beatScale = 1.5 * 1.2;
+                model.scale.set(beatScale, beatScale, beatScale);
             } else {
                 model.rotation.y += 0.02;
-                const scaleVar = 1 + normalizedAmp * 0.15;
-                model.scale.set(2 * scaleVar, 2 * scaleVar, 2 * scaleVar);
-            }
-            
-            // Tilt forward/backward
-            if (Math.floor(dancePhase) % 4 < 2) {
-                model.rotation.x += Math.sin(time * 3) * 0.1 * normalizedAmp;
+                const scaleVar = 1 + normalizedAmp * 0.1;
+                model.scale.set(1.5 * scaleVar, 1.5 * scaleVar, 1.5 * scaleVar);
             }
         }
 
@@ -527,28 +697,12 @@
             if (model) {
                 if (isPlaying && analyser) {
                     analyser.getByteFrequencyData(dataArray);
-                    
                     detectBeat(dataArray);
-                    
                     const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                    
-                    // Apply dance animation
                     danceAnimation(time, average);
-                    
-                    // Apply zoom animation
-                    animateZoom(time, average);
-                    
                 } else {
-                    // Idle animation
-                    model.position.y = Math.sin(time * 2) * 0.1;
+                    model.position.y = -1 + Math.sin(time * 2) * 0.05;
                     model.rotation.y += 0.005;
-                    model.rotation.set(0, model.rotation.y, 0);
-                    model.scale.set(2, 2, 2);
-                    model.position.x = 0;
-                    model.position.z = 0;
-                    
-                    // Reset camera to base
-                    camera.position.z += (baseCameraZ - camera.position.z) * 0.05;
                 }
             }
             
@@ -559,6 +713,20 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function showDenah() {
+            document.getElementById('denahPanel').classList.add('show');
+            document.getElementById('jadwalPanel').classList.remove('show');
+        }
+
+        function showJadwal() {
+            document.getElementById('jadwalPanel').classList.add('show');
+            document.getElementById('denahPanel').classList.remove('show');
+        }
+
+        function closePanel(panelId) {
+            document.getElementById(panelId).classList.remove('show');
         }
 
         audio.addEventListener('ended', () => {
